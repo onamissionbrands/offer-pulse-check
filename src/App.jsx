@@ -372,7 +372,16 @@ export default function OfferPulseCheck() {
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700;1,800&family=Lato:wght@300;400;700;900&family=Allura&display=swap');
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-size: 16px; }
+      html, body { font-size: 16px; max-width: 100vw; overflow-x: hidden; }
+      @media (max-width: 480px) {
+        .vital-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        .how-it-works-box { flex-direction: column !important; }
+        .how-it-works-label { white-space: normal !important; }
+        .receive-grid { grid-template-columns: 1fr !important; }
+        .welcome-card { padding: 20px 16px !important; }
+        .quiz-header-label { font-size: 10px !important; letter-spacing: 1px !important; }
+        .results-overview { grid-template-columns: 1fr !important; }
+      }
     `}</style>
   );
 
@@ -443,7 +452,7 @@ export default function OfferPulseCheck() {
 
   // ── WELCOME ──────────────────────────────────────────────────────────────
   if (phase === "welcome") return (
-    <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh", maxWidth: "100vw", overflowX: "hidden" }}>
       <FontStyle />
       <GradBg>
         <Masthead />
@@ -468,13 +477,13 @@ export default function OfferPulseCheck() {
       </GradBg>
 
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 24px 60px" }}>
-        <div style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.1)`, borderRadius: 14, padding: "34px 30px", marginTop: 28, marginBottom: 18, boxShadow: "0 6px 32px rgba(31,27,113,0.09)" }}>
+        <div className="welcome-card" style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.1)`, borderRadius: 14, padding: "34px 30px", marginTop: 28, marginBottom: 18, boxShadow: "0 6px 32px rgba(31,27,113,0.09)" }}>
           <p style={{ fontSize: 16, lineHeight: 1.9, color: "#3a2e5a", marginBottom: 26, textAlign: "center", fontFamily: "'Lato',sans-serif" }}>
             A magnetic offer has a strong pulse in every vital sign. This check reads all five — because your offer can be thriving in one area and struggling in another. You walk away knowing exactly where the energy is strong and where it needs attention.
           </p>
 
           {/* Vital signs grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 7, marginBottom: 26 }}>
+          <div className="vital-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 7, marginBottom: 26 }}>
             {VITALS.map((v, i) => (
               <div key={i} style={{ background: BRAND.lavenderPale, border: `1px solid rgba(78,48,161,0.1)`, borderRadius: 10, padding: "13px 5px", textAlign: "center" }}>
                 <div style={{ marginBottom: 8, display: "flex", justifyContent: "center", alignItems: "center", height: 26 }}>
@@ -496,8 +505,8 @@ export default function OfferPulseCheck() {
           </div>
 
           {/* How it works */}
-          <div style={{ background: BRAND.lavenderMid, border: `1px solid rgba(78,48,161,0.12)`, borderRadius: 8, padding: "14px 18px", marginBottom: 26, display: "flex", gap: 14 }}>
-            <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.2, fontWeight: 700, color: BRAND.indigoMid, textTransform: "uppercase", whiteSpace: "nowrap", paddingTop: 2 }}>HOW IT WORKS</span>
+          <div className="how-it-works-box" style={{ background: BRAND.lavenderMid, border: `1px solid rgba(78,48,161,0.12)`, borderRadius: 8, padding: "14px 18px", marginBottom: 26, display: "flex", gap: 14 }}>
+            <span className="how-it-works-label" style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.2, fontWeight: 700, color: BRAND.indigoMid, textTransform: "uppercase", whiteSpace: "nowrap", paddingTop: 2 }}>HOW IT WORKS</span>
             <p style={{ fontSize: 14, lineHeight: 1.8, color: "#3a2e5a", margin: 0, fontFamily: "'Lato',sans-serif" }}>Answer fifteen questions by choosing the response that fits you best. Answer honestly based on where your offer is right now, not where you want it to be. Your full pulse reading — vital sign by vital sign — appears at the end.</p>
           </div>
 
@@ -510,7 +519,7 @@ export default function OfferPulseCheck() {
         {/* What you receive */}
         <div style={{ padding: "4px 0" }}>
           <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 2.5, fontWeight: 700, color: "#5a4a7a", textTransform: "uppercase", marginBottom: 14, paddingLeft: 4 }}>WHAT YOU WILL RECEIVE</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div className="receive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {[
               { color: BRAND.magenta,   text: "A pulse reading for each of your five vital signs" },
               { color: BRAND.indigoMid, text: "What each reading means for your specific offer" },
@@ -537,7 +546,7 @@ export default function OfferPulseCheck() {
     const isFirst = globalIdx === 0;
     const v = VITALS[vIdx];
     return (
-      <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh" }}>
+      <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh", maxWidth: "100vw", overflowX: "hidden" }}>
         <FontStyle />
         <GradBg>
           <Masthead />
@@ -545,7 +554,7 @@ export default function OfferPulseCheck() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <VitalIcon vital={v} size={18} color="#fff" />
-                <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 1.5, color: "#fff", textTransform: "uppercase", fontWeight: 700 }}>Vital Sign {v.num} · {v.name}</span>
+                <span className="quiz-header-label" style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 1.5, color: "#fff", textTransform: "uppercase", fontWeight: 700 }}>Vital Sign {v.num} · {v.name}</span>
               </span>
               <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 13, fontWeight: 900, color: BRAND.gold }}>{answered}/{TOTAL}</span>
             </div>
@@ -630,7 +639,7 @@ export default function OfferPulseCheck() {
   if (phase === "results") {
     const low = lowestVital();
     return (
-      <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh" }}>
+      <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh", maxWidth: "100vw", overflowX: "hidden" }}>
         <FontStyle />
         <Confetti active={confetti} />
 
@@ -648,7 +657,7 @@ export default function OfferPulseCheck() {
 
           {/* Overview strip */}
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "10px 24px 40px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+            <div className="results-overview" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
               {VITALS.map((v, i) => {
                 const sc = vitalScore(v.id), b = bandFor(sc);
                 const ecgColor = b.key === "strong" ? BRAND.gold : b.key === "steady" ? BRAND.magenta : b.key === "weak" ? BRAND.goldLight : "#f9ebf9";
