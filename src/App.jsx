@@ -4,29 +4,108 @@ import { useState, useEffect, useRef } from "react";
 const BRAND = {
   indigoDark:   "#1f1b71",
   indigoMid:    "#4e30a1",
-  gold:         "#d1b059",
-  goldLight:    "#ecd595",
-  magenta:      "#c43acb",
+  gold:         "#ecd595",
+  goldDeep:     "#d1b059",
+  teal:         "#026e88",
+  tealPale:     "#eaf6f9",
+  cream:        "#fbf6e9",
   lavender:     "#d4c5fd",
   lavenderMid:  "#ede7fe",
   lavenderPale: "#eceaf5",
-  blush:        "#f9ebf9",
   white:        "#ffffff",
 };
 
 // ── PULSE BANDS — each level gets its own distinct color ─────────────────────
 const BANDS = {
-  strong:   { key: "strong",   label: "Strong Pulse",  color: "#4e30a1", bg: "#ede7fe", amp: 1.0,  textOnColor: "#fff" },
-  steady:   { key: "steady",   label: "Steady Pulse",  color: "#c43acb", bg: "#fdeeff", amp: 0.62, textOnColor: "#fff" },
-  weak:     { key: "weak",     label: "Weak Pulse",    color: "#ecd595", bg: "#fdf8e6", amp: 0.34, textOnColor: "#3a2e00" },
-  flatline: { key: "flatline", label: "Flatline",      color: "#f9ebf9", bg: "#fdf5fd", amp: 0.0,  textOnColor: "#6b2d6e" },
+  strong:   { key: "strong",   label: "Strong Pulse",  color: "#4e30a1", bg: "#ede7fe", amp: 1.0,  textOnColor: "#fff",
+              chipOnDark: { fill: "#ede7fe", text: "#4e30a1" } },
+  steady:   { key: "steady",   label: "Steady Pulse",  color: "#026e88", bg: "#eaf6f9", amp: 0.62, textOnColor: "#fff",
+              chipOnDark: { fill: "#eaf6f9", text: "#026e88" } },
+  weak:     { key: "weak",     label: "Weak Pulse",    color: "#d1b059", bg: "#fbf6e9", amp: 0.34, textOnColor: "#2e2400",
+              chipOnDark: { fill: "#ecd595", text: "#2e2400" } },
+  flatline: { key: "flatline", label: "Flatline",      color: "#d4c5fd", bg: "#ede7fe", amp: 0.0,  textOnColor: "#1f1b71",
+              chipOnDark: { fill: "#d4c5fd", text: "#1f1b71" } },
 };
 
 function bandFor(score) {
-  if (score >= 10) return BANDS.strong;
-  if (score >= 7)  return BANDS.steady;
-  if (score >= 4)  return BANDS.weak;
+  // Each vital sign is 3 questions scored 1-4, so the range is 3-12.
+  // Strong requires predominantly 4s. A 10 (one 4 and two 3s) is a good
+  // steady pulse, not a strong one. Flatline starts at 4 so it is actually
+  // reachable rather than requiring the worst answer three times.
+  if (score >= 11) return BANDS.strong;
+  if (score >= 8)  return BANDS.steady;
+  if (score >= 5)  return BANDS.weak;
   return BANDS.flatline;
+}
+
+// ── THE TWO HALVES ───────────────────────────────────────────────────────────
+// The five vital signs are really two questions. Grouping them this way is what
+// turns five separate scores into one readable pattern.
+const HALVES = [
+  {
+    key: "inner",
+    label: "Inner Pulse",
+    question: "Is this offer naturally aligned for you?",
+    ids: ["passion", "brilliance"],
+  },
+  {
+    key: "outer",
+    label: "Outer Pulse",
+    question: "Does the market need this, and are you known for the outcome you deliver?",
+    ids: ["pain", "transformation", "lane"],
+  },
+];
+
+// How far apart the two halves must be before we call the pattern lopsided.
+// Measured on the same 3–12 scale used for a single vital sign.
+const HALF_GAP_THRESHOLD = 1.5;
+
+// Order used to break a scoring tie in "A Gentle Starting Point".
+const TIE_PRIORITY = ["pain", "transformation", "lane", "passion", "brilliance"];
+
+const HALVES_LEAD = "The summary above splits into two halves, and they are asking different things. Your Inner Pulse, Passion Alignment and Natural Brilliance, is about whether this offer is naturally aligned for you. Your Outer Pulse covers Real Buyer Pain, Clear Transformation and Specialized Lane, and it asks whether people actually want this, and whether they can tell what it is and who it is for. The interesting part is how those two compare.";
+
+const SHAPES = {
+  bothHolding: {
+    key: "bothHolding",
+    headline: "Both halves are holding",
+    body: "Both halves came back strong, which is less common than you would think. The work is naturally aligned for you, and it meets a real market need that people understand, and those two things do not often show up together.\n\nSo the foundation is not where your problem lives. What is worth looking at now is everything sitting on top of it, the structure, the pricing, the sales path, all the places a good offer still leaks quietly.",
+    xray: "That is a different examination than this one, and it is what the Offer X-Ray was built to do.",
+  },
+  innerLed: {
+    key: "innerLed",
+    headline: "Strong on the inside, softer on the outside",
+    body: "This offer came out of real conviction and real capability. The market has not caught up to it yet.\n\nThis is the most common shape among people who have been at this a while, and it is the most maddening one, because the work itself is good. Most of the time the gap is language, people not recognizing themselves in how you describe the problem you solve. Once in a while it is something harder, and the pain you built around turns out to be one nobody actually loses sleep over.\n\nKnowing which of those you are dealing with matters more than anything else on your list, because they lead to completely different work.",
+    xray: "The Offer X-Ray tells you which one you are dealing with.",
+  },
+  outerLed: {
+    key: "outerLed",
+    headline: "Clear to the market, quietly costing you",
+    body: "People understand this offer. Something underneath it is running low.\n\nThis shape is easy to ignore, because from the outside everything looks like it is working. People get what you sell, some of them buy it, and the numbers might even be fine. But your Inner Pulse, the half that measures whether this is your work done your way, came back well below the rest.\n\nThat kind of gap does not announce itself. It turns up a year later as delivery that costs you more than it should, or as a quiet reluctance to sell the very thing that sells.\n\nThe honest read on this shape is that the offer needs rebuilding around you. That is a hard thing to hear about something that is currently working, and most people in this position keep going instead. The cost of that arrives later, with more built on top of it.",
+    xray: null,
+  },
+  bothSteady: {
+    key: "bothSteady",
+    headline: "Even all the way through, and not yet sharp anywhere",
+    body: "Both halves came back steady. Nothing here is broken, and nothing is carrying the offer either.\n\nThis is harder to work with than a lopsided result, because there is no obvious weak link to go fix. The offer foundation is fine. Fine is a hard place to build from, because buyers move toward whatever feels built for them specifically, and a steady foundation rarely produces that on its own.\n\nMost people in this shape assume the answer is showing up more often. Another round of content rarely moves an offer that reads as reasonable rather than necessary. What lifts it is finding the one place where a sharper edge changes how everything else lands.",
+    xray: "Finding that one place is exactly what the Offer X-Ray is for.",
+  },
+  bothSoft: {
+    key: "bothSoft",
+    headline: "Both halves came back faint",
+    body: "This usually means the offer got assembled under pressure, or built around what looked sellable rather than around what you are actually good at. It happens to experienced people constantly, and it says nothing about your ability.\n\nThe upside is that this is the most fixable shape on the list, because nothing has been built on top of the wrong foundation yet. Most people who land here are convinced the problem is visibility, and they are about to spend real money getting in front of more people for an offer that would not have converted either way. You are not there yet.",
+    xray: "The Offer X-Ray would show you the whole picture at once, rather than one vital sign at a time.",
+  },
+};
+
+function shapeFor(innerAvg, outerAvg) {
+  const gap = innerAvg - outerAvg;
+  if (gap >= HALF_GAP_THRESHOLD) return SHAPES.innerLed;
+  if (gap <= -HALF_GAP_THRESHOLD) return SHAPES.outerLed;
+  const avg = (innerAvg + outerAvg) / 2;
+  if (avg >= 10) return SHAPES.bothHolding;
+  if (avg >= 7)  return SHAPES.bothSteady;
+  return SHAPES.bothSoft;
 }
 
 // Road / highway SVG icon for Specialized Lane
@@ -48,20 +127,20 @@ const VITALS = [
     questions: [
       { q: "When you imagine doing this work with a client, how does it feel in your body?", options: [
         { t: "I feel capable but not particularly lit up by it", v: 2 },
-        { t: "I feel energized and completely in my element, this is the work I was made for", v: 4 },
+        { t: "I feel energized and fully in my element", v: 4 },
         { t: "I feel a low grade dread or heaviness I keep trying to push past", v: 1 },
         { t: "I feel mostly excited with some nerves about whether I can deliver well", v: 3 },
       ]},
-      { q: "When you think about selling this offer, how do you feel?", options: [
-        { t: "Like I have to convince myself before I can convince anyone else", v: 1 },
-        { t: "Genuinely excited, I believe in it and I want people to have it", v: 4 },
-        { t: "Anxious, I find myself avoiding it more than I'd like to admit", v: 2 },
-        { t: "Hopeful but a little uncertain about whether people will see the value", v: 3 },
+      { q: "If you had to stop offering this tomorrow, what would you feel?", options: [
+        { t: "Disappointment. I would want to rebuild something close to it", v: 3 },
+        { t: "Relief, if I am being honest with myself", v: 1 },
+        { t: "Loss. This is the work I want to be doing and I would find my way back to it", v: 4 },
+        { t: "A mix. Some relief about the work itself, some worry about the income", v: 2 },
       ]},
       { q: "What best describes why you created this offer?", options: [
         { t: "It's a combination of what I love and what I saw people asking for", v: 3 },
         { t: "I modeled it after something I saw working for someone else in my space", v: 1 },
-        { t: "It's the natural expression of my deepest expertise and the problem I was born to solve", v: 4 },
+        { t: "It came out of my own expertise and the problem I most want to be solving", v: 4 },
         { t: "I built it because I needed something to sell and this felt like the right fit", v: 2 },
       ]},
     ],
@@ -85,17 +164,17 @@ const VITALS = [
         { t: "I have some natural characteristics that make this a good fit for me but I am still building the real world experience to back it up", v: 2 },
         { t: "It takes real effort and I sometimes wonder if this is truly my strongest lane", v: 1 },
       ]},
-      { q: "How long has this area of expertise been a natural part of who you are?", options: [
-        { t: "I'm honestly still figuring out if this is my true area of genius", v: 1 },
-        { t: "People have been coming to me for this my whole life, long before it became my business", v: 4 },
-        { t: "I discovered it relatively recently through my entrepreneurial journey", v: 2 },
-        { t: "It started emerging through my career and the roles I kept naturally gravitating toward", v: 3 },
+      { q: "If someone with your same training and experience took over this offer, what would happen?", options: [
+        { t: "They could deliver it well, though some clients would notice a difference", v: 2 },
+        { t: "It would not really be the same offer. Too much of it depends on how I specifically think and work", v: 4 },
+        { t: "They could deliver it more or less the way I do", v: 1 },
+        { t: "They could handle the mechanics, but a lot of what makes it work would be missing", v: 3 },
       ]},
-      { q: "Where did the expertise behind this offer come from?", options: [
-        { t: "It's a combination of lived experience, natural ability, and years of deliberate practice", v: 4 },
-        { t: "I learned it from a mentor or program and I'm still developing my own point of view", v: 1 },
-        { t: "It comes mostly from lived experience and I'm still building the frameworks around it", v: 3 },
-        { t: "I studied it and got certified but haven't yet built deep lived experience with it", v: 2 },
+      { q: "How much of what you deliver inside this offer is work you are genuinely best at?", options: [
+        { t: "It is a mix. The core is mine, but a fair amount was added on", v: 2 },
+        { t: "Nearly all of it. I built the offer around what I do best rather than around what is standard in my field", v: 4 },
+        { t: "Quite a bit of it is there because it seemed expected, not because it is my strength", v: 1 },
+        { t: "Most of it is mine, with a few pieces I would hand off if I could", v: 3 },
       ]},
     ],
     means: {
@@ -119,7 +198,7 @@ const VITALS = [
         { t: "I know the problem well but I'm still refining how to articulate it in my buyer's own language", v: 3 },
       ]},
       { q: "What evidence do you have that people are actively spending money to solve this problem?", options: [
-        { t: "My own sales and buyer conversations confirm people invest consistently and willingly in solving this", v: 4 },
+        { t: "The people I have talked to directly have told me they are already spending money trying to solve this", v: 4 },
         { t: "I'm not sure yet whether people see this as worth investing in", v: 1 },
         { t: "I've seen clear market evidence of people spending money on this, competitors, courses, programs all exist and are selling", v: 3 },
         { t: "I believe people would pay to solve this but I haven't yet validated it with real buyers or market research", v: 2 },
@@ -145,11 +224,11 @@ const VITALS = [
     useCustomIcon: false,
     tagline: "Can you see and feel where the client starts and where they end up?",
     questions: [
-      { q: "How vividly can you describe where your buyer starts and where they end up after working with you?", options: [
-        { t: "I can describe the general direction of the transformation but the specific details are still a little blurry", v: 3 },
-        { t: "I'm still figuring out what transformation my offer actually creates", v: 1 },
-        { t: "I can describe both the before and after in vivid, specific detail that makes my ideal client immediately say 'that's exactly where I am and where I want to go'", v: 4 },
-        { t: "I know the transformation exists but I struggle to put it into clear, concrete language", v: 2 },
+      { q: "If you had to write your buyer's before and after right now, one sentence each, what would happen?", options: [
+        { t: "The after would come easily. The before would take me longer", v: 3 },
+        { t: "I would struggle with both", v: 1 },
+        { t: "Both would come out quickly, in the words my buyer would actually use", v: 4 },
+        { t: "I could write them, but they would come out generic", v: 2 },
       ]},
       { q: "How many distinct transformations is your offer promising?", options: [
         { t: "Several transformations, I want buyers to see how much value they are getting", v: 1 },
@@ -157,11 +236,11 @@ const VITALS = [
         { t: "Two or three transformations that I believe are all important and don't want to leave out", v: 2 },
         { t: "Primarily one transformation with a few natural and related outcomes that support it", v: 3 },
       ]},
-      { q: "When you describe the outcome your offer creates, which best describes your experience?", options: [
-        { t: "It takes several exchanges before people fully understand what the outcome means for them", v: 2 },
-        { t: "People immediately respond with 'I need that', the outcome lands every time I describe it", v: 4 },
-        { t: "I notice people seem unclear or underwhelmed when I describe where the offer takes them", v: 1 },
-        { t: "I feel completely clear on the outcome even if I'm still gathering early buyer feedback", v: 3 },
+      { q: "When you tell someone what your offer does for people, what usually happens?", options: [
+        { t: "It lands, though I usually have to add a bit of context", v: 3 },
+        { t: "I get blank looks, or they ask me what I mean", v: 1 },
+        { t: "It lands right away, and the right people recognize themselves in it", v: 4 },
+        { t: "It takes a few passes before it clicks", v: 2 },
       ]},
     ],
     means: {
@@ -178,23 +257,23 @@ const VITALS = [
     useCustomIcon: true,
     tagline: "Is there a distinct, ownable corner of the market this lives in, or is it in the generic middle?",
     questions: [
-      { q: "How distinct is the territory your offer occupies compared to others who serve a similar audience?", options: [
-        { t: "My offer sounds similar to others in my space and I know I need to differentiate but haven't cracked it yet", v: 2 },
-        { t: "My offer occupies a specific, ownable territory, the right person finds me and immediately knows I am speaking directly to them", v: 4 },
-        { t: "My offer is broad enough to appeal to many different types of people and I haven't narrowed it down deliberately yet", v: 1 },
-        { t: "My offer has some distinct elements but I could still be described in similar terms to a few others in my space", v: 3 },
+      { q: "If your ideal client put you side by side with three others who serve the same audience, what would happen?", options: [
+        { t: "There would be differences, but they would have to read closely to find them", v: 2 },
+        { t: "It would not really be a comparison. What I do would read as its own thing", v: 4 },
+        { t: "We would look interchangeable. They would likely decide on price, or on whoever they found first", v: 1 },
+        { t: "The differences would be clear, though we would still look like variations of the same thing", v: 3 },
       ]},
-      { q: "What makes the way you solve this problem distinctly yours rather than interchangeable with others in your space?", options: [
-        { t: "I have a genuinely distinct approach that is recognizably mine, whether or not it has a formal name yet, and clients seek me out specifically for how I do this work", v: 4 },
-        { t: "I have a distinct approach and philosophy but I haven't yet fully articulated or packaged what makes it uniquely mine", v: 3 },
-        { t: "My approach is similar to others in my space but I bring my own personality and experience to it", v: 2 },
-        { t: "I am still developing a point of view on how to solve this problem in a way that is distinctly mine", v: 1 },
+      { q: "What makes the way you work distinctly yours?", options: [
+        { t: "I have a real approach and opinions of my own, but I have not shaped them into something I can name", v: 3 },
+        { t: "I work similarly to others in my space, with my own personality on top", v: 2 },
+        { t: "I have a clear approach and a point of view that is recognizably mine, and I can name what it is", v: 4 },
+        { t: "I am still forming how I think this problem should be solved", v: 1 },
       ]},
-      { q: "Do you have a clear and specific point of view on your topic that naturally attracts some people and repels others?", options: [
-        { t: "I have a strong, clear point of view that I share openly and it consistently attracts my ideal clients", v: 4 },
-        { t: "I'm still developing the confidence to share my point of view openly and consistently", v: 1 },
-        { t: "I have opinions about my topic but I tend to soften them to avoid alienating potential clients", v: 2 },
-        { t: "I have a developing point of view and I'm starting to share it but it's not yet fully formed", v: 3 },
+      { q: "How many different kinds of problems do you actively take on?", options: [
+        { t: "A few, and they are closely connected versions of the same underlying problem", v: 3 },
+        { t: "Quite a few. I can help with most things in my field, and I usually do", v: 1 },
+        { t: "Essentially one. I refer the rest out", v: 4 },
+        { t: "Several. They are loosely related, but they are genuinely different problems", v: 2 },
       ]},
     ],
     means: {
@@ -260,7 +339,7 @@ function Confetti({ active }) {
     const H = document.documentElement.clientHeight || 900;
     cvs.width = W;
     cvs.height = H;
-    const cols = [BRAND.magenta, BRAND.gold, BRAND.goldLight, BRAND.white, BRAND.lavender, BRAND.indigoMid, "#c43acb", "#d1b059"];
+    const cols = [BRAND.tealPale, BRAND.gold, BRAND.goldDeep, BRAND.white, BRAND.lavender, BRAND.indigoMid, BRAND.teal, BRAND.gold];
     const ps = Array.from({ length: 120 }, () => ({
       x: Math.random() * W, y: -20 - Math.random() * 200,
       w: 5 + Math.random() * 8, h: 3 + Math.random() * 5,
@@ -343,20 +422,42 @@ export default function OfferPulseCheck() {
     flat.forEach((f, gi) => { if (f.vital.id === vid && answers[gi] !== undefined) sum += answers[gi]; });
     return sum;
   };
-  const lowestVital = () => [...VITALS].sort((a, b) => vitalScore(a.id) - vitalScore(b.id))[0];
+  // On a tie, prefer the vital sign with the lowest single answer, then fall
+  // back to TIE_PRIORITY: market reality before personal fit, because an offer
+  // nobody wants is not rescued by passion.
+  const worstAnswer = (vid) => {
+    const vals = flat.map((f, gi) => (f.vital.id === vid && answers[gi] !== undefined) ? answers[gi] : null).filter(v => v !== null);
+    return vals.length ? Math.min(...vals) : 4;
+  };
+  const lowestVital = () => [...VITALS]
+    .map((v, i) => ({ v, i }))
+    .sort((a, b) =>
+      vitalScore(a.v.id) - vitalScore(b.v.id) ||
+      worstAnswer(a.v.id) - worstAnswer(b.v.id) ||
+      TIE_PRIORITY.indexOf(a.v.id) - TIE_PRIORITY.indexOf(b.v.id)
+    )[0].v;
+
+  // Average score per vital sign within a half, so a 2-vital half and a
+  // 3-vital half stay comparable on the same 3–12 scale.
+  const halfAvg = (ids) => ids.reduce((sum, id) => sum + vitalScore(id), 0) / ids.length;
+  const vitalsIn = (ids) => ids.map(id => VITALS.find(v => v.id === id));
 
   const doTrans = (dir, cb) => {
     setSlideDir(dir); setSliding(true);
     setTimeout(() => { cb(); setTimeout(() => setSliding(false), 50); }, 240);
   };
 
+  // Advancing is its own action now, so a question that already has an answer
+  // is not a dead end when someone navigates back to it.
+  const goNext = () => {
+    if (qIdx < VITALS[vIdx].questions.length - 1) doTrans("right", () => setQIdx(qIdx + 1));
+    else if (vIdx < VITALS.length - 1) doTrans("right", () => { setVIdx(vIdx + 1); setQIdx(0); });
+    else { setPhase("results"); setTimeout(() => setConfetti(true), 350); }
+  };
+
   const handleAnswer = (val) => {
     setAnswers({ ...answers, [globalIdx]: val });
-    setTimeout(() => {
-      if (qIdx < VITALS[vIdx].questions.length - 1) doTrans("right", () => setQIdx(qIdx + 1));
-      else if (vIdx < VITALS.length - 1) doTrans("right", () => { setVIdx(vIdx + 1); setQIdx(0); });
-      else { setPhase("results"); setTimeout(() => setConfetti(true), 350); }
-    }, 280);
+    setTimeout(goNext, 280);
   };
 
   const goPrev = () => {
@@ -387,14 +488,14 @@ export default function OfferPulseCheck() {
 
   const GradBg = ({ children }) => (
     <div style={{
-      background: `linear-gradient(135deg, ${BRAND.indigoDark} 0%, ${BRAND.indigoMid} 35%, #7b2d8b 62%, #3d1a7a 80%, ${BRAND.indigoDark} 100%)`,
+      background: `linear-gradient(135deg, ${BRAND.indigoDark} 0%, ${BRAND.indigoMid} 35%, #026e88 62%, #3d1a7a 80%, ${BRAND.indigoDark} 100%)`,
       position: "relative", overflow: "hidden"
     }}>
       {/* Magenta bloom bottom left */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
         backgroundImage: `
-          radial-gradient(ellipse 55% 40% at 0% 100%, rgba(196,58,203,0.35) 0%, transparent 70%),
+          radial-gradient(ellipse 55% 40% at 0% 100%, rgba(2,110,136,0.42) 0%, transparent 70%),
           radial-gradient(ellipse 45% 35% at 100% 0%, rgba(209,176,89,0.22) 0%, transparent 65%),
           radial-gradient(ellipse 30% 30% at 75% 85%, rgba(212,197,253,0.18) 0%, transparent 60%),
           radial-gradient(ellipse 25% 25% at 20% 20%, rgba(236,213,149,0.12) 0%, transparent 55%)
@@ -406,12 +507,12 @@ export default function OfferPulseCheck() {
         backgroundImage: `
           radial-gradient(circle 1.5px at 12% 25%, ${BRAND.gold} 100%, transparent 100%),
           radial-gradient(circle 1px at 72% 18%, ${BRAND.gold} 100%, transparent 100%),
-          radial-gradient(circle 2px at 48% 60%, ${BRAND.goldLight} 100%, transparent 100%),
+          radial-gradient(circle 2px at 48% 60%, ${BRAND.goldDeep} 100%, transparent 100%),
           radial-gradient(circle 1px at 83% 72%, ${BRAND.gold} 100%, transparent 100%),
-          radial-gradient(circle 1.5px at 8% 65%, ${BRAND.goldLight} 100%, transparent 100%),
+          radial-gradient(circle 1.5px at 8% 65%, ${BRAND.goldDeep} 100%, transparent 100%),
           radial-gradient(circle 1px at 91% 42%, ${BRAND.gold} 100%, transparent 100%),
           radial-gradient(circle 1px at 58% 12%, ${BRAND.gold} 100%, transparent 100%),
-          radial-gradient(circle 1.5px at 33% 88%, ${BRAND.goldLight} 100%, transparent 100%),
+          radial-gradient(circle 1.5px at 33% 88%, ${BRAND.goldDeep} 100%, transparent 100%),
           radial-gradient(circle 1px at 65% 45%, ${BRAND.gold} 100%, transparent 100%)
         `,
       }} />
@@ -466,10 +567,10 @@ export default function OfferPulseCheck() {
           </p>
         </div>
         <div style={{ maxWidth: 560, margin: "0 auto", padding: "6px 24px 18px", opacity: 0.9 }}>
-          <EcgLine amp={1} color={BRAND.magenta} width={520} height={56} beats={4} animate />
+          <EcgLine amp={1} color={BRAND.tealPale} width={520} height={56} beats={4} animate />
         </div>
         <div style={{ textAlign: "center", paddingBottom: 46 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BRAND.goldLight, border: `1px solid ${BRAND.gold}`, borderRadius: 4, padding: "9px 20px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BRAND.gold, border: `1px solid ${BRAND.goldDeep}`, borderRadius: 4, padding: "9px 20px" }}>
             <span style={{ fontSize: 14, color: BRAND.indigoDark }}>♥</span>
             <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 2, color: BRAND.indigoDark, fontWeight: 700 }}>15 QUESTIONS · UNDER 10 MINUTES</span>
           </div>
@@ -479,8 +580,15 @@ export default function OfferPulseCheck() {
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 24px 60px" }}>
         <div className="welcome-card" style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.1)`, borderRadius: 14, padding: "34px 30px", marginTop: 28, marginBottom: 18, boxShadow: "0 6px 32px rgba(31,27,113,0.09)" }}>
           <p style={{ fontSize: 16, lineHeight: 1.9, color: "#3a2e5a", marginBottom: 26, textAlign: "center", fontFamily: "'Lato',sans-serif" }}>
-            A magnetic offer has a strong pulse in every vital sign. This check reads all five — because your offer can be thriving in one area and struggling in another. You walk away knowing exactly where the energy is strong and where it needs attention.
+            A magnetic offer has a strong pulse in every vital sign. This check reads all five, because your offer can be thriving in one area and struggling in another. You walk away knowing exactly where the energy is strong and where it needs attention.
           </p>
+
+          {/* One offer at a time */}
+          <div style={{ background: BRAND.lavenderMid, border: `1px solid rgba(78,48,161,0.14)`, borderRadius: 8, padding: "15px 18px", marginBottom: 26, textAlign: "center" }}>
+            <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 12.5, letterSpacing: 1.4, fontWeight: 900, color: BRAND.indigoDark, textTransform: "uppercase", lineHeight: 1.6 }}>
+              When taking this quiz, focus on one offer at a time.
+            </span>
+          </div>
 
           {/* Vital signs grid */}
           <div className="vital-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 7, marginBottom: 26 }}>
@@ -507,7 +615,7 @@ export default function OfferPulseCheck() {
           {/* How it works */}
           <div className="how-it-works-box" style={{ background: BRAND.lavenderMid, border: `1px solid rgba(78,48,161,0.12)`, borderRadius: 8, padding: "14px 18px", marginBottom: 26, display: "flex", gap: 14 }}>
             <span className="how-it-works-label" style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.2, fontWeight: 700, color: BRAND.indigoMid, textTransform: "uppercase", whiteSpace: "nowrap", paddingTop: 2 }}>HOW IT WORKS</span>
-            <p style={{ fontSize: 14, lineHeight: 1.8, color: "#3a2e5a", margin: 0, fontFamily: "'Lato',sans-serif" }}>Answer fifteen questions by choosing the response that fits you best. Answer honestly based on where your offer is right now, not where you want it to be. Your full pulse reading — vital sign by vital sign — appears at the end.</p>
+            <p style={{ fontSize: 14, lineHeight: 1.8, color: "#3a2e5a", margin: 0, fontFamily: "'Lato',sans-serif" }}>Answer fifteen questions by choosing the response that fits you best. Answer honestly based on where your offer is right now, not where you want it to be. Your full pulse reading, vital sign by vital sign, appears at the end.</p>
           </div>
 
           <button onClick={() => setPhase("quiz")}
@@ -521,7 +629,7 @@ export default function OfferPulseCheck() {
           <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 2.5, fontWeight: 700, color: "#5a4a7a", textTransform: "uppercase", marginBottom: 14, paddingLeft: 4 }}>WHAT YOU WILL RECEIVE</div>
           <div className="receive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {[
-              { color: BRAND.magenta,   text: "A pulse reading for each of your five vital signs" },
+              { color: BRAND.teal,      text: "A pulse reading for each of your five vital signs" },
               { color: BRAND.indigoMid, text: "What each reading means for your specific offer" },
               { color: BRAND.gold,      text: "A picture of what a strong pulse looks like in every area" },
               { color: BRAND.lavender,  text: "A gentle nudge toward the vital sign to strengthen first" },
@@ -544,6 +652,7 @@ export default function OfferPulseCheck() {
   if (phase === "quiz") {
     const pct = (answered / TOTAL) * 100;
     const isFirst = globalIdx === 0;
+    const isLastQuestion = globalIdx === TOTAL - 1;
     const v = VITALS[vIdx];
     return (
       <div style={{ fontFamily: "'Lato',sans-serif", background: BRAND.lavenderPale, minHeight: "100vh", maxWidth: "100vw", overflowX: "hidden" }}>
@@ -560,7 +669,7 @@ export default function OfferPulseCheck() {
             </div>
             {/* Progress bar */}
             <div style={{ height: 5, background: "rgba(255,255,255,0.14)", borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
-              <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${BRAND.indigoMid}, ${BRAND.magenta})`, borderRadius: 3, transition: "width .4s cubic-bezier(.34,1.56,.64,1)" }} />
+              <div style={{ height: "100%", width: `${pct}%`, background: `linear-gradient(90deg, ${BRAND.indigoMid}, ${BRAND.tealPale})`, borderRadius: 3, transition: "width .4s cubic-bezier(.34,1.56,.64,1)" }} />
             </div>
             {/* Dot progress */}
             <div style={{ display: "flex", justifyContent: "center", gap: 6 }}>
@@ -569,7 +678,7 @@ export default function OfferPulseCheck() {
                   {vv.questions.map((_, qi) => {
                     const gi = flat.findIndex(f => f.vi === i && f.qi === qi);
                     const isCur = gi === globalIdx, isDone = answers[gi] !== undefined;
-                    return <div key={qi} style={{ width: isCur ? 20 : 7, height: 7, borderRadius: 3, background: isCur ? BRAND.gold : isDone ? BRAND.magenta : "rgba(255,255,255,0.2)", transition: "all .3s" }} />;
+                    return <div key={qi} style={{ width: isCur ? 20 : 7, height: 7, borderRadius: 3, background: isCur ? BRAND.gold : isDone ? BRAND.tealPale : "rgba(255,255,255,0.2)", transition: "all .3s" }} />;
                   })}
                   {i < VITALS.length - 1 && <div style={{ width: 4 }} />}
                 </div>
@@ -624,9 +733,17 @@ export default function OfferPulseCheck() {
                 style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.5, color: isFirst ? "#c8c0de" : BRAND.indigoMid, background: "none", border: "none", cursor: isFirst ? "default" : "pointer", padding: "10px 0", textTransform: "uppercase", fontWeight: 700 }}>
                 ← BACK
               </button>
-              <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 0.5, color: "#6a5a8a", fontWeight: 400 }}>
-                {curAns === undefined ? "Choose your answer" : "Answer recorded ✓"}
+              <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 0.5, color: "#6a5a8a", fontWeight: 400, textAlign: "center", flex: "1 1 auto" }}>
+                {curAns === undefined ? "Choose your answer" : "Answer recorded \u2713"}
               </div>
+              {curAns !== undefined ? (
+                <button onClick={goNext}
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.5, color: BRAND.teal, background: "none", border: "none", cursor: "pointer", padding: "10px 0", textTransform: "uppercase", fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {isLastQuestion ? "SEE MY RESULTS \u2192" : "NEXT \u2192"}
+                </button>
+              ) : (
+                <span style={{ width: 52, flexShrink: 0 }} />
+              )}
             </div>
           </div>
         </div>
@@ -655,30 +772,62 @@ export default function OfferPulseCheck() {
             <p style={{ fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontSize: 17, color: "#fff", lineHeight: 1.7, maxWidth: 400, margin: "0 auto" }}>Here is the pulse of your offer across all five vital signs</p>
           </div>
 
-          {/* Overview strip */}
+          {/* Overview strip, grouped into the two halves */}
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "10px 24px 40px" }}>
-            <div className="results-overview" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-              {VITALS.map((v, i) => {
-                const sc = vitalScore(v.id), b = bandFor(sc);
-                const ecgColor = b.key === "strong" ? BRAND.gold : b.key === "steady" ? BRAND.magenta : b.key === "weak" ? BRAND.goldLight : "#f9ebf9";
-                return (
-                  <div key={i} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "13px 14px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                      <VitalIcon vital={v} size={16} color="#fff" />
-                      <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 0.5, color: "#fff", textTransform: "uppercase", fontWeight: 700 }}>{v.name}</span>
-                    </div>
-                    <div style={{ height: 24, marginBottom: 8 }}>
-                      <EcgLine amp={b.amp} color={ecgColor} width={200} height={24} beats={2} />
-                    </div>
-                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, color: b.textOnColor, background: b.color, padding: "3px 10px", borderRadius: 3 }}>{b.label}</span>
-                  </div>
-                );
-              })}
-            </div>
+            {HALVES.map((half, hi) => (
+              <div key={half.key} style={{ marginBottom: hi === 0 ? 26 : 0 }}>
+                {/* Half label */}
+                <div style={{ marginBottom: 12, textAlign: "left" }}>
+                  <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", color: BRAND.gold, fontWeight: 700, marginBottom: 5 }}>{half.label}</div>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontSize: 14, lineHeight: 1.5, color: "rgba(255,255,255,0.72)" }}>{half.question}</div>
+                </div>
+                <div className="results-overview" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+                  {vitalsIn(half.ids).map((v, i) => {
+                    const sc = vitalScore(v.id), b = bandFor(sc);
+                    const ecgColor = b.key === "strong" ? BRAND.gold : b.key === "steady" ? BRAND.tealPale : b.key === "weak" ? BRAND.goldDeep : BRAND.lavender;
+                    return (
+                      <div key={i} style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "13px 14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <VitalIcon vital={v} size={16} color="#fff" />
+                          <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 0.5, color: "#fff", textTransform: "uppercase", fontWeight: 700 }}>{v.name}</span>
+                        </div>
+                        <div style={{ height: 24, marginBottom: 8 }}>
+                          <EcgLine amp={b.amp} color={ecgColor} width={200} height={24} beats={2} />
+                        </div>
+                        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: 1, color: b.chipOnDark.text, background: b.chipOnDark.fill, padding: "3px 10px", borderRadius: 3, boxShadow: "0 1px 6px rgba(0,0,0,0.18)" }}>{b.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </GradBg>
 
         <div style={{ maxWidth: 600, margin: "0 auto", padding: "30px 24px 60px" }}>
+
+          {/* Pulse pattern - how the two halves relate */}
+          {(() => {
+            const innerAvg = halfAvg(HALVES[0].ids);
+            const outerAvg = halfAvg(HALVES[1].ids);
+            const shape = shapeFor(innerAvg, outerAvg);
+            return (
+              <div style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.1)`, borderLeft: `5px solid ${BRAND.teal}`, borderRadius: "0 12px 12px 0", padding: "28px 26px", marginBottom: 24, boxShadow: "0 2px 16px rgba(31,27,113,0.06)" }}>
+                <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 2, fontWeight: 700, color: BRAND.teal, textTransform: "uppercase", marginBottom: 12 }}>Your Pulse Pattern</div>
+
+                {/* The two halves, explained before the reading */}
+                <p style={{ fontSize: 14.5, lineHeight: 1.85, color: "#5a4a7a", margin: "0 0 20px", paddingBottom: 18, borderBottom: `1px solid ${BRAND.lavenderMid}`, fontFamily: "'Lato',sans-serif" }}>{HALVES_LEAD}</p>
+
+                <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: "clamp(20px,3.4vw,25px)", color: BRAND.indigoDark, lineHeight: 1.25, marginBottom: 16 }}>{shape.headline}</div>
+                {shape.body.split("\n\n").map((para, i) => (
+                  <p key={i} style={{ fontSize: 15, lineHeight: 1.9, color: "#3a2e5a", margin: i === 0 ? 0 : "14px 0 0", fontFamily: "'Lato',sans-serif" }}>{para}</p>
+                ))}
+                {shape.xray && (
+                  <p style={{ fontSize: 15, lineHeight: 1.9, color: BRAND.teal, margin: "18px 0 0", paddingTop: 16, borderTop: `1px solid ${BRAND.lavenderMid}`, fontFamily: "'Lato',sans-serif", fontWeight: 700 }}>{shape.xray}</p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Per vital sign detail cards */}
           {VITALS.map((v, i) => {
@@ -688,7 +837,7 @@ export default function OfferPulseCheck() {
               <div key={i} style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.08)`, borderLeft: `5px solid ${accent}`, borderRadius: "0 12px 12px 0", padding: "26px 26px", marginBottom: 16, boxShadow: "0 2px 16px rgba(31,27,113,0.06)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
                   <div style={{ width: 50, height: 50, background: b.bg, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <VitalIcon vital={v} size={24} color={accent === BRAND.goldLight || accent === "#ecd595" || accent === "#f9ebf9" ? BRAND.indigoMid : accent} />
+                    <VitalIcon vital={v} size={24} color={accent === BRAND.goldDeep || accent === "#d1b059" || accent === "#d4c5fd" ? BRAND.indigoMid : accent} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: "#8a7aaa", marginBottom: 3, fontWeight: 700 }}>Vital Sign {v.num}</div>
@@ -703,10 +852,10 @@ export default function OfferPulseCheck() {
                   <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 1, color: b.textOnColor, background: accent, padding: "6px 14px", borderRadius: 4, whiteSpace: "nowrap" }}>{b.label}</span>
                 </div>
 
-                <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.5, fontWeight: 700, color: accent === "#ecd595" || accent === "#f9ebf9" ? BRAND.indigoMid : accent, textTransform: "uppercase", marginBottom: 10 }}>What Your Score Means</div>
+                <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 1.5, fontWeight: 700, color: accent === "#d1b059" || accent === "#d4c5fd" ? BRAND.indigoMid : accent, textTransform: "uppercase", marginBottom: 10 }}>What Your Score Means</div>
                 <p style={{ fontSize: 15, lineHeight: 1.9, color: "#3a2e5a", margin: 0, fontFamily: "'Lato',sans-serif" }}>{v.means[b.key]}</p>
 
-                <StrongLooks text={v.strongLooks} color={accent === "#ecd595" || accent === "#f9ebf9" ? BRAND.indigoMid : accent} />
+                <StrongLooks text={v.strongLooks} color={accent === "#d1b059" || accent === "#d4c5fd" ? BRAND.indigoMid : accent} />
               </div>
             );
           })}
@@ -715,23 +864,23 @@ export default function OfferPulseCheck() {
           <div style={{ background: BRAND.white, border: `1px solid rgba(78,48,161,0.1)`, borderRadius: 10, padding: "26px 26px", marginBottom: 22, boxShadow: "0 2px 16px rgba(31,27,113,0.05)" }}>
             <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 2, fontWeight: 700, color: "#8a7aaa", textTransform: "uppercase", marginBottom: 10 }}>A GENTLE STARTING POINT</div>
             <p style={{ fontSize: 15, lineHeight: 1.9, color: "#3a2e5a", margin: 0, fontFamily: "'Lato',sans-serif" }}>
-              Your offer does not need a strong pulse everywhere at once. If you want one place to begin, look first at <span style={{ fontWeight: 700, color: BRAND.indigoMid, fontStyle: "italic", fontFamily: "'Playfair Display',serif" }}>{low.name}</span>. Strengthening the vital sign with the faintest pulse tends to lift everything around it — and it is often the difference between an offer that is merely available and one that is truly magnetic.
+              Your offer does not need a strong pulse everywhere at once. If you want one place to begin, look first at <span style={{ fontWeight: 700, color: BRAND.indigoMid, fontStyle: "italic", fontFamily: "'Playfair Display',serif" }}>{low.name}</span>. Strengthening the vital sign with the faintest pulse tends to lift everything around it, and it is often the difference between an offer that is merely available and one that is truly magnetic.
             </p>
           </div>
 
           {/* CTA */}
-          <div style={{ background: `linear-gradient(150deg, ${BRAND.indigoDark} 0%, ${BRAND.indigoMid} 65%, #2d1a6e 100%)`, borderRadius: 12, padding: "44px 30px", textAlign: "center", position: "relative", overflow: "hidden", marginBottom: 16 }}>
-            <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 20% 80%, rgba(212,197,253,0.16) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(196,58,203,0.14) 0%, transparent 50%)`, pointerEvents: "none" }} />
+          <div style={{ background: `linear-gradient(150deg, ${BRAND.indigoDark} 0%, ${BRAND.indigoMid} 65%, #1f1b71 100%)`, borderRadius: 12, padding: "44px 30px", textAlign: "center", position: "relative", overflow: "hidden", marginBottom: 16 }}>
+            <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle at 20% 80%, rgba(212,197,253,0.16) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(2,110,136,0.22) 0%, transparent 50%)`, pointerEvents: "none" }} />
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ width: 36, height: 2, background: BRAND.gold, margin: "0 auto 22px", borderRadius: 2 }} />
               <div style={{ marginBottom: 20, opacity: 0.85 }}>
-                <EcgLine amp={1} color={BRAND.magenta} width={300} height={38} beats={3} animate />
+                <EcgLine amp={1} color={BRAND.tealPale} width={300} height={38} beats={3} animate />
               </div>
               <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: BRAND.gold, marginBottom: 14, fontWeight: 700 }}>READY TO GO DEEPER?</div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: "clamp(22px,4vw,30px)", color: "#fff", marginBottom: 6, lineHeight: 1.15 }}>Find out what it takes to make your offer</div>
               <div style={{ fontFamily: "'Allura',cursive", fontSize: "clamp(28px,5vw,42px)", color: BRAND.gold, marginBottom: 22, lineHeight: 1.2 }}>truly magnetic and sellable</div>
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 15, color: "#fff", lineHeight: 1.85, maxWidth: 440, margin: "0 auto 28px" }}>
-                The Offer X-Ray goes deeper. It walks your offer through the six layers of the offer lifecycle: positioning, structure, ecosystem, messaging, visibility, and sales. Find out what's working, where the fractures are, and the clearest path to making your offer wildly buyable. You will receive a highly personalized PDF report customized to your specific offer.
+                The Offer X-Ray goes deeper. It walks your offer through the six layers of the offer lifecycle: positioning, structure, ecosystem, messaging, visibility, and sales. Find out what's working, where the fractures are, and the clearest path to making your offer wildly buyable. You will receive a highly personalized PDF report customized to your specific offer, and you can audit up to 10 different offers.
               </p>
               <a href="https://www.onamissionbrands.com/offer-x-ray"
                 style={{ display: "inline-flex", alignItems: "center", gap: 10, background: BRAND.gold, color: BRAND.indigoDark, fontFamily: "'Lato',sans-serif", fontSize: 12, letterSpacing: 2, fontWeight: 900, padding: "17px 34px", borderRadius: 4, textDecoration: "none" }}>
