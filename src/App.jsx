@@ -563,7 +563,7 @@ export default function OfferPulseCheck() {
           <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 800, fontSize: "clamp(34px,5.5vw,54px)", color: "#fff", lineHeight: 1.05, marginBottom: 6 }}>The Offer</div>
           <div style={{ fontFamily: "'Allura',cursive", fontSize: "clamp(38px,6vw,62px)", color: BRAND.gold, lineHeight: 1.1, marginBottom: 20 }}>Pulse Check</div>
           <p style={{ fontFamily: "'Playfair Display',serif", fontStyle: "italic", fontSize: 18, color: "#fff", lineHeight: 1.7, maxWidth: 430, margin: "0 auto 12px" }}>
-            Is your offer magnetic or is it muted by the noise?
+            Does your offer have a strong heartbeat?
           </p>
         </div>
         <div style={{ maxWidth: 560, margin: "0 auto", padding: "6px 24px 18px", opacity: 0.9 }}>
